@@ -1,12 +1,18 @@
 const express = require('express');
 const router = express.Router();
-
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 router.get('/', (req, res) => {
     res.send('Hello, this is system API!');   
 });
+// 角色檢查
+const checkRole = require('./checkRole.js').checkRole;
+//token 驗證
+const authenticateToken = require('./checkToken.js').authenticateToken;
 // 1. 上班打卡
-router.post('/clockIN', async (req, res) => {
+router.post('/clockIN', authenticateToken,checkRole(['employee', 'manager','admin']), async(req, res) => {
     const { employeeId, clockInTime } = req.body;
+    
     try {
         // 實作邏輯：檢查今日是否已打卡，若無則存入資料庫
         // const record = await Attendance.create({ employeeId, clockInTime, status: 'IN' });
@@ -17,7 +23,7 @@ router.post('/clockIN', async (req, res) => {
 });
 
 // 2. 下班打卡
-router.post('/clockOUT', async (req, res) => {
+router.post('/clockOUT', authenticateToken,checkRole(['employee', 'manager','admin']), async(req, res) => {
     const { employeeId, clockOutTime } = req.body;
     try {
         // 實作邏輯：尋找今日的打卡紀錄並更新下班時間
@@ -28,7 +34,7 @@ router.post('/clockOUT', async (req, res) => {
 });
 
 // 3. 申請請假
-router.post('/askForLeave', async (req, res) => {
+router.post('/askForLeave', authenticateToken,checkRole(['employee', 'manager','admin']),    async(req, res) => {
     const { employeeId, startTime, endTime, reason, managerId } = req.body;
     try {
         // 1. 存入資料庫，狀態設為 'Pending'
@@ -40,7 +46,7 @@ router.post('/askForLeave', async (req, res) => {
 });
 
 // 4. 取得待審核列表 (經理視角)
-router.get('/LeaveReviewList', async (req, res) => {
+router.get('/LeaveReviewList', authenticateToken,checkRole(['manager','admin']), async(req, res) => {
     const { managerId } = req.query;
     try {
         // 查詢該經理所屬部門中，狀態為 'Pending' 的申請
@@ -52,7 +58,7 @@ router.get('/LeaveReviewList', async (req, res) => {
 });
 
 // 5. 審核請假
-router.post('/LeaveReview', async (req, res) => {
+router.post('/LeaveReview', authenticateToken,checkRole(['manager','admin']), async(req, res) => {
     const { requestId, status } = req.body; // status: 'Approved' or 'Rejected'
     try {
         // 1. 更新紀錄狀態
@@ -64,7 +70,7 @@ router.post('/LeaveReview', async (req, res) => {
 });
 
 // 6. 查詢出缺勤紀錄
-router.get('/attendanceRecord', async (req, res) => {
+router.get('/attendanceRecord', authenticateToken,checkRole(['employee', 'manager','admin']), async(req, res) => {
     const { employeeId, startDate, endDate } = req.query;
     try {
         // 根據時間跨度查詢資料庫
