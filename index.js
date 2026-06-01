@@ -1,9 +1,18 @@
 const express = require('express');
 const app = express();
 const api = require('./api.js');
+const { sequelize } = require('./models');
 const port = 3000;
-// 假設已引入相應的資料庫 Model
-// const { Attendance, LeaveRequest, Employee } = require('./models');
+
+// 中間件
+app.use(express.json());
+
+// 初始化資料庫連線
+sequelize.authenticate()
+    .then(() => console.log('資料庫連線成功'))
+    .catch(err => console.error('資料庫連線失敗:', err));
+
+// 測試路由
 app.get('/', (req, res) => {
     // 打卡頁面
     res.send('Hello, this is the attendance management system API!');   

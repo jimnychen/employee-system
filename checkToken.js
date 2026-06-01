@@ -1,5 +1,6 @@
+const jwt = require('jsonwebtoken');
 const env = require('dotenv').config()
-const JWT_SECRET = env.JWT_SECRET
+const JWT_SECRET = process.env.JWT_SECRET || 'secret_key'
 const authenticateToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1]; // 取得 Bearer <token>

@@ -1,3 +1,5 @@
+ 
+ DROP DATABASE IF EXISTS employee_system
 -- PostgreSQL schema for attendance system used by this project
 
 CREATE TABLE users (
@@ -16,7 +18,7 @@ CREATE TABLE attendance_records (
     clock_in_time timestamptz NOT NULL,
     clock_out_time timestamptz,
     status varchar(10) NOT NULL DEFAULT 'IN' CHECK (status IN ('IN', 'OUT', 'PENDING')),
-    record_date date NOT NULL DEFAULT (clock_in_time::date),
+    record_date date GENERATED ALWAYS AS ((clock_in_time AT TIME ZONE 'Asia/Taipei')::date ) STORED,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     UNIQUE (employee_id, record_date)
