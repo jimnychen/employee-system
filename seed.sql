@@ -1,16 +1,18 @@
 -- 測試資料 Seed
 -- 注意：密碼為 bcryptjs 加密的雜湊值
--- password: "password123" -> $2a$10$N9qo8uLOickgx2ZMRZoHK.0JHY0vHd7acsQn5bOdFaXDx5eUQW8Yy
--- password: "admin123" -> $2a$10$0Gvhg4dSZMuC.BcC1NfNT.qr6Q5l5cO7ZwCr0eTg5dAXxDkzGM.L2
+-- password: "password123" -> $2a$10$28cE9y1.ByILvXIG14jvz.UI.SShwOC.Zv5IwAPa5bUWtfDf/aXju
 
 -- 插入使用者資料
+DROP TABLE IF EXISTS requests ;
+DROP TABLE IF EXISTS attendance_records ;
+DROP TABLE IF EXISTS users ;
 INSERT INTO users (username, password, name, role) VALUES
-    ('admin', '$2a$10$0Gvhg4dSZMuC.BcC1NfNT.qr6Q5l5cO7ZwCr0eTg5dAXxDkzGM.L2', '系統管理員', 'admin'),
-    ('manager1', '$2a$10$N9qo8uLOickgx2ZMRZoHK.0JHY0vHd7acsQn5bOdFaXDx5eUQW8Yy', '部門經理', 'manager'),
-    ('manager2', '$2a$10$N9qo8uLOickgx2ZMRZoHK.0JHY0vHd7acsQn5bOdFaXDx5eUQW8Yy', '行政經理', 'manager'),
-    ('employee1', '$2a$10$N9qo8uLOickgx2ZMRZoHK.0JHY0vHd7acsQn5bOdFaXDx5eUQW8Yy', '員工甲', 'employee'),
-    ('employee2', '$2a$10$N9qo8uLOickgx2ZMRZoHK.0JHY0vHd7acsQn5bOdFaXDx5eUQW8Yy', '員工乙', 'employee'),
-    ('employee3', '$2a$10$N9qo8uLOickgx2ZMRZoHK.0JHY0vHd7acsQn5bOdFaXDx5eUQW8Yy', '員工丙', 'employee');
+    ('admin', '$2a$10$28cE9y1.ByILvXIG14jvz.UI.SShwOC.Zv5IwAPa5bUWtfDf/aXju', '系統管理員', 'admin'),
+    ('manager1', '$2a$10$28cE9y1.ByILvXIG14jvz.UI.SShwOC.Zv5IwAPa5bUWtfDf/aXju', '部門經理', 'manager'),
+    ('manager2', '$2a$10$28cE9y1.ByILvXIG14jvz.UI.SShwOC.Zv5IwAPa5bUWtfDf/aXju', '行政經理', 'manager'),
+    ('employee1', '$2a$10$28cE9y1.ByILvXIG14jvz.UI.SShwOC.Zv5IwAPa5bUWtfDf/aXju', '員工甲', 'employee'),
+    ('employee2', '$2a$10$28cE9y1.ByILvXIG14jvz.UI.SShwOC.Zv5IwAPa5bUWtfDf/aXju', '員工乙', 'employee'),
+    ('employee3', '$2a$10$28cE9y1.ByILvXIG14jvz.UI.SShwOC.Zv5IwAPa5bUWtfDf/aXju', '員工丙', 'employee');
 
 -- 插入打卡紀錄
 INSERT INTO attendance_records (employee_id, clock_in_time, clock_out_time, status) VALUES
