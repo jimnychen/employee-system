@@ -3,9 +3,6 @@
 -- password: "password123" -> $2a$10$28cE9y1.ByILvXIG14jvz.UI.SShwOC.Zv5IwAPa5bUWtfDf/aXju
 
 -- 插入使用者資料
-DROP TABLE IF EXISTS requests ;
-DROP TABLE IF EXISTS attendance_records ;
-DROP TABLE IF EXISTS users ;
 INSERT INTO users (username, password, name, role) VALUES
     ('admin', '$2a$10$28cE9y1.ByILvXIG14jvz.UI.SShwOC.Zv5IwAPa5bUWtfDf/aXju', '系統管理員', 'admin'),
     ('manager1', '$2a$10$28cE9y1.ByILvXIG14jvz.UI.SShwOC.Zv5IwAPa5bUWtfDf/aXju', '部門經理', 'manager'),

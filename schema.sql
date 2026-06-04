@@ -1,5 +1,4 @@
  
- DROP DATABASE IF EXISTS employee_system
 -- PostgreSQL schema for attendance system used by this project
 
 CREATE TABLE users (
