@@ -2,6 +2,7 @@ const sequelize = require('../config/database');
 const UserModel = require('./User');
 const AttendanceRecordModel = require('./AttendanceRecord');
 const RequestModel = require('./Request');
+const LeaveBalanceModel = require('./LeaveBalance');
 
 // 初始化模型
 const User = UserModel(sequelize);

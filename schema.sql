@@ -39,5 +39,7 @@ CREATE TABLE requests (
     updated_at timestamptz NOT NULL DEFAULT now()
 );
 
+
+
 CREATE INDEX idx_requests_manager_status ON requests(manager_id, status);
 CREATE INDEX idx_attendance_employee_date ON attendance_records(employee_id, record_date);

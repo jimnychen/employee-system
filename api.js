@@ -189,4 +189,46 @@ router.get('/attendanceRecord', authenticateToken, checkRole(['employee', 'manag
     }
 });
 
+// 7. 取得員工總請假時數與加班時數
+router.get('/employeeHours', authenticateToken, checkRole(['employee', 'manager', 'admin']), async (req, res) => {
+    try {
+        let { employeeId, startDate, endDate } = req.query;
+        if (!employeeId) employeeId = req.user.id;
+
+        // 員工只能查自己的資料
+        if (req.user.role === 'employee' && Number(employeeId) !== Number(req.user.id)) {
+            return res.status(403).json({ error: '權限不足，無法查詢其他員工資料' });
+        }
+
+        const where = { employeeId, status: 'Approved' };
+        if (startDate && endDate) {
+            where[Op.or] = [
+                { startTime: { [Op.between]: [new Date(startDate), new Date(endDate)] } },
+                { endTime: { [Op.between]: [new Date(startDate), new Date(endDate)] } }
+            ];
+        }
+
+        const requests = await Request.findAll({ where });
+
+        let totalLeaveHours = 0;
+        let totalOvertimeHours = 0;
+
+        requests.forEach(r => {
+            const start = new Date(r.startTime);
+            const end = new Date(r.endTime);
+            const hours = Math.max(0, (end - start) / (1000 * 60 * 60));
+            if (r.requestType === 'leave') totalLeaveHours += hours;
+            if (r.requestType === 'overtime') totalOvertimeHours += hours;
+        });
+
+        // 四捨五入到小數點兩位
+        totalLeaveHours = Math.round(totalLeaveHours * 100) / 100;
+        totalOvertimeHours = Math.round(totalOvertimeHours * 100) / 100;
+
+        res.status(200).json({ employeeId, totalLeaveHours, totalOvertimeHours });
+    } catch (error) {
+        res.status(500).json({ error: '計算失敗: ' + error.message });
+    }
+});
+
 module.exports = router;
