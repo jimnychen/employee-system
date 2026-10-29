@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>員工打卡系統 - 登入</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: #f2f4f7;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .phone-frame {
+            width: 393px;
+            height: 852px;
+            background-color: #ffffff;
+            border-radius: 48px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+        .logo-circle {
+            width: 110px;
+            height: 110px;
+            background-color: #e3f2fd;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 22px;
+            font-weight: bold;
+            color: #111;
+            line-height: 1.3;
+            margin-bottom: 60px;
+        }
+        .input-field {
+            width: 85%;
+            height: 54px;
+            background-color: #e4e4e6;
+            border: 2px solid transparent;
+            border-radius: 12px;
+            padding: 0 18px;
+            font-size: 17px;
+            color: #111;
+            margin-bottom: 16px;
+            outline: none;
+            transition: all 0.2s;
+        }
+        .input-field::placeholder { color: #8e8e93; }
+        .login-btn {
+            width: 85%;
+            height: 50px;
+            background-color: #90caf9;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            color: #fff;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background-color 0.2s;
+        }
+        .login-btn:hover { background-color: #64b5f6; }
+
+        @keyframes shakeAndFlash {
+            0% { border-color: #ff3b30; background-color: #ffebee; }
+            50% { border-color: transparent; background-color: #e4e4e6; }
+            100% { border-color: #ff3b30; background-color: #ffebee; }
+        }
+        .flash-error {
+            animation: shakeAndFlash 0.4s ease 2;
+            border-color: #ff3b30 !important;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="phone-frame">
+        <div class="logo-circle">
+            北護<br>公司
+        </div>
+        
+        <form id="loginForm" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+            <input type="text" id="employeeId" class="input-field" placeholder="請輸入員工編號">
+            <input type="password" id="password" class="input-field" placeholder="請輸入密碼">
+            
+            <button type="submit" class="login-btn">登入</button>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const empInput = document.getElementById('employeeId');
+            const pwdInput = document.getElementById('password');
+            const empVal = empInput.value.trim();
+            const pwdVal = pwdInput.value.trim();
+
+            let hasError = false;
+
+            if (!empVal) {
+                empInput.classList.add('flash-error');
+                setTimeout(() => empInput.classList.remove('flash-error'), 800);
+                hasError = true;
+            }
+            if (!pwdVal) {
+                pwdInput.classList.add('flash-error');
+                setTimeout(() => pwdInput.classList.remove('flash-error'), 800);
+                hasError = true;
+            }
+
+            if (hasError) return;
+
+            // 驗證通過，直接跳轉到主頁檔案 home.html
+            window.location.href = 'home.html';
+        });
+    </script>
+
+</body>
+</html>

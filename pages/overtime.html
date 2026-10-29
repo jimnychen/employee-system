@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>加班申請</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: #f2f4f7;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex; justify-content: center; align-items: center; min-height: 100vh;
+        }
+        .phone-frame {
+            width: 393px; height: 852px; background-color: #ffffff; border-radius: 48px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15); position: relative; overflow: hidden; display: flex; flex-direction: column; padding: 24px 20px;
+        }
+        .top-bar {
+            display: flex; align-items: center; margin-bottom: 20px;
+        }
+        .back-btn {
+            background: none; border: none; font-size: 18px; font-weight: bold; color: #3b82f6; cursor: pointer; text-decoration: none;
+        }
+        .page-title-main {
+            flex: 1; text-align: center; font-size: 18px; font-weight: bold; color: #111; margin-right: 24px;
+        }
+
+        .open-modal-btn {
+            background-color: #3b82f6; color: white; border: none; border-radius: 14px;
+            padding: 16px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 40px;
+            text-align: center; width: 100%;
+        }
+        .open-modal-btn:hover { background-color: #2563eb; }
+
+        /* 彈窗 Modal 樣式 */
+        .modal-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.5); display: flex;
+            justify-content: center; align-items: center; z-index: 100;
+        }
+        .modal-box {
+            background-color: #ffffff; width: 345px; border-radius: 24px; padding: 24px 20px;
+            display: flex; flex-direction: column; gap: 14px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            position: relative; max-height: 90vh; overflow-y: auto;
+        }
+        
+        .modal-user-header {
+            display: flex; align-items: center; justify-content: space-between; position: relative;
+        }
+        .user-info-left {
+            display: flex; align-items: center; gap: 10px;
+        }
+        .user-avatar {
+            width: 40px; height: 40px; background-color: #d1d5db; border-radius: 50%;
+        }
+        .user-details {
+            display: flex; flex-direction: column; gap: 2px;
+        }
+        .user-name { font-size: 15px; font-weight: bold; color: #111; }
+        .user-dept { font-size: 12px; color: #6b7280; }
+        .close-btn { 
+            background: none; border: none; font-size: 18px; font-weight: bold; color: #111; cursor: pointer; 
+            padding: 4px; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;
+        }
+
+        .modal-title {
+            text-align: center; font-size: 18px; font-weight: bold; color: #111; margin-top: 4px; margin-bottom: 2px;
+        }
+
+        .form-group { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #374151; }
+        
+        .form-label-row {
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .form-group label { font-weight: 600; color: #374151; text-align: center; width: 100%; }
+        .form-label-row label { width: auto; text-align: left; }
+        
+        .common-reason-btn {
+            background-color: #e5e7eb; border: none; border-radius: 6px; padding: 2px 8px; font-size: 11px; color: #4b5563; cursor: pointer; font-weight: 500;
+        }
+        .common-reason-btn:hover { background-color: #d1d5db; }
+
+        .form-control {
+            width: 100%; padding: 12px 14px; background-color: #f3f4f6; border: none; border-radius: 14px; font-size: 14px; outline: none; color: #111;
+            text-align: center;
+            text-align-last: center;
+        }
+        
+        select.form-control { 
+            appearance: none; 
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); 
+            background-repeat: no-repeat; 
+            background-position: right 14px center; 
+            background-size: 16px; 
+            cursor: pointer; 
+            padding-right: 35px;
+        }
+
+        textarea.form-control { 
+            resize: none; height: 80px; text-align: left; border-radius: 14px; padding: 12px;
+        }
+
+        .btn-submit {
+            width: 100%; padding: 14px; background-color: #e0f2fe; border: none; border-radius: 20px; font-size: 15px; font-weight: bold; cursor: pointer; color: #0284c7; margin-top: 6px; text-align: center;
+        }
+        .btn-submit:hover { background-color: #bae6fd; }
+
+        /* 常用事由選擇子彈窗 */
+        .sub-modal-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.4); display: none;
+            justify-content: center; align-items: center; z-index: 110;
+        }
+        .sub-modal-box {
+            background-color: #ffffff; width: 310px; border-radius: 20px; padding: 20px 16px;
+            display: flex; flex-direction: column; gap: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            position: relative; max-height: 85vh; overflow-y: auto;
+        }
+        .sub-modal-header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; position: relative;
+        }
+        .sub-modal-title {
+            width: 100%; text-align: center; font-size: 16px; font-weight: bold; color: #111;
+        }
+        .reason-item-row {
+            display: flex; justify-content: space-between; align-items: center;
+            background-color: #fdf2f2; border-radius: 10px; padding: 10px 14px;
+            font-size: 13px; color: #111; font-weight: 500; cursor: pointer;
+        }
+        .reason-item-row:hover { background-color: #fce8e8; }
+        .reason-add-icon { font-weight: bold; font-size: 15px; color: #111; }
+    </style>
+</head>
+<body>
+    <div class="phone-frame">
+        <div class="top-bar">
+            <a class="back-btn" href="home.html">‹ 返回</a>
+            <div class="page-title-main">加班申請</div>
+        </div>
+
+        <button class="open-modal-btn" onclick="openModal()">+ 新增加班申請</button>
+
+        <div id="overtime-modal" class="modal-overlay">
+            <div class="modal-box">
+                <div class="modal-user-header">
+                    <div class="user-info-left">
+                        <div class="user-avatar"></div>
+                        <div class="user-details">
+                            <span class="user-name" id="display-user-name">載入中...</span>
+                            <span class="user-dept" id="display-user-dept">載入中...</span>
+                        </div>
+                    </div>
+                    <a href="home.html" class="close-btn">✕</a>
+                </div>
+
+                <div class="modal-title">加班申請</div>
+
+                <div class="form-group">
+                    <label>加班日期</label>
+                    <input type="date" id="overtime-date" class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label>開始時間</label>
+                    <input type="time" id="start-time" class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label>結束時間</label>
+                    <input type="time" id="end-time" class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label>加班類型</label>
+                    <select id="overtime-type-select" class="form-control">
+                        <option value="" disabled selected>請選擇加班類型</option>
+                        <option value="一般工作日加班">一般工作日加班</option>
+                        <option value="休息日加班">休息日加班</option>
+                        <option value="例假日加班">例假日加班</option>
+                        <option value="國定假日加班">國定假日加班</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <div class="form-label-row">
+                        <label style="text-align: left; width: auto;">加班事由</label>
+                        <button class="common-reason-btn" onclick="openSubModal()">+ 常用事由</button>
+                    </div>
+                    <textarea id="overtime-reason" class="form-control" placeholder="請輸入加班事由......"></textarea>
+                </div>
+
+                <button class="btn-submit" onclick="submitOvertime()">確認送出</button>
+            </div>
+
+            <!-- 常用事由選擇子彈窗 -->
+            <div id="sub-modal" class="sub-modal-overlay">
+                <div class="sub-modal-box">
+                    <div class="sub-modal-header">
+                        <div class="sub-modal-title">選擇事由</div>
+                        <button onclick="closeSubModal()" style="background:none;border:none;font-size:16px;font-weight:bold;cursor:pointer;position:absolute;right:8px;">✕</button>
+                    </div>
+                    <div class="reason-item-row" onclick="selectReason('系統緊急故障修復')">
+                        <span>系統緊急故障修復</span><span class="reason-add-icon">+</span>
+                    </div>
+                    <div class="reason-item-row" onclick="selectReason('因應專案上線前夕準備')">
+                        <span>因應專案上線前夕準備</span><span class="reason-add-icon">+</span>
+                    </div>
+                    <div class="reason-item-row" onclick="selectReason('系統/設備維護')">
+                        <span>系統/設備維護</span><span class="reason-add-icon">+</span>
+                    </div>
+                    <div class="reason-item-row" onclick="selectReason('月底/年底帳務彙整與結算')">
+                        <span>月底/年底帳務彙整與結算</span><span class="reason-add-icon">+</span>
+                    </div>
+                    <div class="reason-item-row" onclick="selectReason('緊急例行會議')">
+                        <span>緊急例行會議</span><span class="reason-add-icon">+</span>
+                    </div>
+                    <div class="reason-item-row" onclick="selectReason('跨國會議')">
+                        <span>跨國會議</span><span class="reason-add-icon">+</span>
+                    </div>
+                    <div class="reason-item-row" onclick="selectReason('大型活動/展覽籌辦與撤場')">
+                        <span>大型活動/展覽籌辦與撤場</span><span class="reason-add-icon">+</span>
+                    </div>
+                    <div class="reason-item-row" onclick="selectReason('專案趕工')">
+                        <span>專案趕工</span><span class="reason-add-icon">+</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 頁面載入時自動讀取登入的使用者資訊
+        window.addEventListener('DOMContentLoaded', () => {
+            const currentUser = JSON.parse(localStorage.getItem('current_user')) || { name: '王小明', department: '研發部' };
+            document.getElementById('display-user-name').textContent = currentUser.name;
+            document.getElementById('display-user-dept').textContent = currentUser.department || '研發部';
+        });
+
+        function openModal() {
+            document.getElementById('overtime-modal').style.display = 'flex';
+        }
+
+        function openSubModal() {
+            document.getElementById('sub-modal').style.display = 'flex';
+        }
+
+        function closeSubModal() {
+            document.getElementById('sub-modal').style.display = 'none';
+        }
+
+        function selectReason(reasonText) {
+            document.getElementById('overtime-reason').value = reasonText;
+            closeSubModal();
+        }
+
+        function submitOvertime() {
+            const date = document.getElementById('overtime-date').value;
+            const startTime = document.getElementById('start-time').value;
+            const endTime = document.getElementById('end-time').value;
+            const type = document.getElementById('overtime-type-select').value;
+            const reason = document.getElementById('overtime-reason').value.trim();
+
+            if (!date || !startTime || !endTime) {
+                alert('請完整填寫日期與時間！');
+                return;
+            }
+            if (!type) {
+                alert('請選擇加班類型！');
+                return;
+            }
+
+            const currentUser = JSON.parse(localStorage.getItem('current_user')) || { name: '王小明' };
+
+            const newRecord = {
+                id: Date.now(),
+                userName: currentUser.name,
+                type: '加班: ' + type,
+                startDate: `${date} ${startTime}`,
+                endDate: `${date} ${endTime}`,
+                reason: reason || '無',
+                agent: '無',
+                status: 'pending',
+                timestamp: new Date().toLocaleDateString()
+            };
+
+            let leaveRecords = JSON.parse(localStorage.getItem('leave_records')) || [];
+            leaveRecords.push(newRecord);
+            localStorage.setItem('leave_records', JSON.stringify(leaveRecords));
+
+            alert('加班申請已送出！');
+            window.location.href = 'home.html';
+        }
+    </script>
+</body>
+</html>

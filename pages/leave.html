@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>請假申請</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: #f2f4f7;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex; justify-content: center; align-items: center; min-height: 100vh;
+        }
+        .phone-frame {
+            width: 393px; height: 852px; background-color: #ffffff; border-radius: 48px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15); position: relative; overflow: hidden; display: flex; flex-direction: column; padding: 24px 20px;
+        }
+        .top-bar {
+            display: flex; align-items: center; margin-bottom: 20px;
+        }
+        .back-btn {
+            background: none; border: none; font-size: 18px; font-weight: bold; color: #3b82f6; cursor: pointer; text-decoration: none;
+        }
+        .page-title-main {
+            flex: 1; text-align: center; font-size: 18px; font-weight: bold; color: #111; margin-right: 24px;
+        }
+
+        .open-modal-btn {
+            background-color: #3b82f6; color: white; border: none; border-radius: 14px;
+            padding: 16px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 40px;
+            text-align: center; width: 100%;
+        }
+        .open-modal-btn:hover { background-color: #2563eb; }
+
+        /* 彈窗 Modal 樣式 */
+        .modal-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.5); display: flex;
+            justify-content: center; align-items: center; z-index: 100;
+        }
+        .modal-box {
+            background-color: #ffffff; width: 345px; border-radius: 24px; padding: 24px 20px;
+            display: flex; flex-direction: column; gap: 14px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            position: relative; max-height: 90vh; overflow-y: auto;
+        }
+        
+        .modal-user-header {
+            display: flex; align-items: center; justify-content: space-between; position: relative;
+        }
+        .user-info-left {
+            display: flex; align-items: center; gap: 10px;
+        }
+        .user-avatar {
+            width: 40px; height: 40px; background-color: #d1d5db; border-radius: 50%;
+        }
+        .user-details {
+            display: flex; flex-direction: column; gap: 2px;
+        }
+        .user-name { font-size: 15px; font-weight: bold; color: #111; }
+        .user-dept { font-size: 12px; color: #6b7280; }
+        .close-btn { 
+            background: none; border: none; font-size: 18px; font-weight: bold; color: #111; cursor: pointer; 
+            padding: 4px; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;
+        }
+
+        .modal-title {
+            text-align: center; font-size: 18px; font-weight: bold; color: #111; margin-top: 4px; margin-bottom: 2px;
+        }
+
+        .form-group { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #374151; }
+        
+        .form-label-row {
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .form-group label { font-weight: 600; color: #374151; text-align: center; width: 100%; }
+        .form-label-row label { width: auto; text-align: left; }
+        
+        .common-reason-btn {
+            background-color: #e5e7eb; border: none; border-radius: 6px; padding: 2px 8px; font-size: 11px; color: #4b5563; cursor: pointer; font-weight: 500;
+        }
+        .common-reason-btn:hover { background-color: #d1d5db; }
+
+        .form-control {
+            width: 100%; padding: 12px 14px; background-color: #f3f4f6; border: none; border-radius: 14px; font-size: 14px; outline: none; color: #111;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        textarea.form-control { 
+            resize: none; height: 80px; text-align: left; border-radius: 14px; padding: 12px; cursor: default;
+        }
+
+        .btn-submit {
+            width: 100%; padding: 14px; background-color: #e0f2fe; border: none; border-radius: 20px; font-size: 15px; font-weight: bold; cursor: pointer; color: #0284c7; margin-top: 6px; text-align: center;
+        }
+        .btn-submit:hover { background-color: #bae6fd; }
+
+        /* 子彈窗樣式 */
+        .sub-modal-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.4); display: none;
+            justify-content: center; align-items: center; z-index: 110;
+        }
+        .sub-modal-box {
+            background-color: #ffffff; width: 310px; border-radius: 20px; padding: 20px 16px;
+            display: flex; flex-direction: column; gap: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            position: relative; max-height: 85vh; overflow-y: auto;
+        }
+        .sub-modal-header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; position: relative;
+        }
+        .sub-modal-title {
+            width: 100%; text-align: center; font-size: 16px; font-weight: bold; color: #111;
+        }
+        .item-row {
+            display: flex; justify-content: space-between; align-items: center;
+            background-color: #fcf4f4; border-radius: 12px; padding: 12px 16px;
+            font-size: 14px; color: #111; font-weight: 500; cursor: pointer;
+        }
+        .item-row:hover { background-color: #fae8e8; }
+        .item-left { display: flex; align-items: center; gap: 8px; }
+        .item-sub-text { font-size: 12px; color: #6b7280; font-weight: normal; }
+        .item-add-icon { font-weight: bold; font-size: 16px; color: #111; }
+    </style>
+</head>
+<body>
+    <div class="phone-frame">
+        <div class="top-bar">
+            <a class="back-btn" href="home.html">‹ 返回</a>
+            <div class="page-title-main">請假申請</div>
+        </div>
+
+        <button class="open-modal-btn" onclick="openModal()">+ 新增請假申請</button>
+
+        <div id="leave-modal" class="modal-overlay">
+            <div class="modal-box">
+                <div class="modal-user-header">
+                    <div class="user-info-left">
+                        <div class="user-avatar"></div>
+                        <div class="user-details">
+                            <span class="user-name" id="display-user-name">載入中...</span>
+                            <span class="user-dept" id="display-user-dept">載入中...</span>
+                        </div>
+                    </div>
+                    <a href="home.html" class="close-btn">✕</a>
+                </div>
+
+                <div class="modal-title">請假申請</div>
+
+                <div class="form-group">
+                    <label>假別</label>
+                    <div id="leave-type-display" class="form-control" onclick="openLeaveTypeModal()" style="color: #6b7280; display: flex; justify-content: space-between; align-items: center;">
+                        <span>請選擇假別</span>
+                        <span style="font-size: 12px;">▼</span>
+                    </div>
+                    <input type="hidden" id="leave-type-value">
+                </div>
+
+                <div class="form-group">
+                    <label>開始時間</label>
+                    <input type="datetime-local" id="start-time" class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label>結束時間</label>
+                    <input type="datetime-local" id="end-time" class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <div class="form-label-row">
+                        <label style="text-align: left; width: auto;">請假事由</label>
+                        <button class="common-reason-btn" onclick="openReasonModal()">+ 常用事由</button>
+                    </div>
+                    <textarea id="leave-reason" class="form-control" placeholder="請輸入請假事由......"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>代理人</label>
+                    <div id="agent-display" class="form-control" onclick="openAgentModal()" style="color: #6b7280; display: flex; justify-content: space-between; align-items: center;">
+                        <span>請選擇代理人</span>
+                        <span style="font-size: 12px;">▼</span>
+                    </div>
+                    <input type="hidden" id="agent-value">
+                </div>
+
+                <button class="btn-submit" onclick="submitLeave()">確認送出</button>
+            </div>
+
+            <!-- 動態假別選擇清單彈窗 -->
+            <div id="leave-type-modal" class="sub-modal-overlay">
+                <div class="sub-modal-box">
+                    <div class="sub-modal-header">
+                        <div class="sub-modal-title">選擇假別</div>
+                        <button onclick="closeSubModals()" style="background:none;border:none;font-size:16px;font-weight:bold;cursor:pointer;position:absolute;right:8px;">✕</button>
+                    </div>
+                    <div id="leave-type-list-container" style="display: flex; flex-direction: column; gap: 8px;">
+                        <!-- 這裡會由 JavaScript 根據資料動態填入 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 選擇事由子彈窗 -->
+            <div id="sub-modal" class="sub-modal-overlay">
+                <div class="sub-modal-box">
+                    <div class="sub-modal-header">
+                        <div class="sub-modal-title">選擇事由</div>
+                        <button onclick="closeSubModals()" style="background:none;border:none;font-size:16px;font-weight:bold;cursor:pointer;position:absolute;right:8px;">✕</button>
+                    </div>
+                    <div class="item-row" onclick="selectReason('旅遊')">
+                        <span>旅遊</span><span class="item-add-icon">+</span>
+                    </div>
+                    <div class="item-row" onclick="selectReason('處理私事')">
+                        <span>處理私事</span><span class="item-add-icon">+</span>
+                    </div>
+                    <div class="item-row" onclick="selectReason('休養生息')">
+                        <span>休養生息</span><span class="item-add-icon">+</span>
+                    </div>
+                    <div class="item-row" onclick="selectReason('休假')">
+                        <span>休假</span><span class="item-add-icon">+</span>
+                    </div>
+                    <div class="item-row" onclick="selectReason('在家照顧小孩')">
+                        <span>在家照顧小孩</span><span class="item-add-icon">+</span>
+                    </div>
+                    <div class="item-row" onclick="selectReason('處理家事')">
+                        <span>處理家事</span><span class="item-add-icon">+</span>
+                    </div>
+                    <div class="item-row" onclick="selectReason('返鄉探親')">
+                        <span>返鄉探親</span><span class="item-add-icon">+</span>
+                    </div>
+                    <div class="item-row" onclick="selectReason('辦理證件')">
+                        <span>辦理證件</span><span class="item-add-icon">+</span>
+                    </div>
+                    <div class="item-row" onclick="selectReason('事假')">
+                        <span>事假</span><span class="item-add-icon">+</span>
+                    </div>
+                    <div class="item-row" onclick="selectReason('身體不適')">
+                        <span>身體不適</span><span class="item-add-icon">+</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 選擇代理人子彈窗 -->
+            <div id="agent-modal" class="sub-modal-overlay">
+                <div class="sub-modal-box">
+                    <div class="sub-modal-header">
+                        <div class="sub-modal-title">選擇代理人</div>
+                        <button onclick="closeSubModals()" style="background:none;border:none;font-size:16px;font-weight:bold;cursor:pointer;position:absolute;right:8px;">✕</button>
+                    </div>
+                    <div class="item-row" onclick="selectAgent('張小美')">
+                        <span>張小美</span><span class="item-add-icon">+</span>
+                    </div>
+                    <div class="item-row" onclick="selectAgent('李大同')">
+                        <span>李大同</span><span class="item-add-icon">+</span>
+                    </div>
+                    <div class="item-row" onclick="selectAgent('陳經理')">
+                        <span>陳經理</span><span class="item-add-icon">+</span>
+                    </div>
+                    <div class="item-row" onclick="selectAgent('林組長')">
+                        <span>林組長</span><span class="item-add-icon">+</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 預設假別餘額資料結構
+        const defaultBalances = {
+            '特休': { count: 7, unit: '日' },
+            '事假': { count: 14, unit: '日' },
+            '普通傷病假': { count: 29, unit: '日' },
+            '公傷病假': { count: '無上限', unit: '' },
+            '生理假': { count: 3, unit: '日' },
+            '婚假': { count: 8, unit: '日' },
+            '喪假': { count: 10, unit: '日' },
+            '產假': { count: 8, unit: '星期' },
+            '產檢假': { count: 7, unit: '日' },
+            '陪產檢及陪產假': { count: 7, unit: '日' }
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const currentUser = JSON.parse(localStorage.getItem('current_user')) || { name: '王小明', department: '研發部' };
+            document.getElementById('display-user-name').textContent = currentUser.name;
+            document.getElementById('display-user-dept').textContent = currentUser.department || '研發部';
+
+            // 初始化或讀取該使用者的剩餘假別餘額
+            let userBalances = JSON.parse(localStorage.getItem('user_leave_balance'));
+            if (!userBalances) {
+                userBalances = defaultBalances;
+                localStorage.setItem('user_leave_balance', JSON.stringify(userBalances));
+            }
+
+            renderLeaveTypeList(userBalances);
+        });
+
+        function renderLeaveTypeList(balances) {
+            const container = document.getElementById('leave-type-list-container');
+            container.innerHTML = '';
+
+            for (const [typeName, info] of Object.entries(balances)) {
+                const subText = info.count === '無上限' ? '無上限' : `剩餘 ${info.count} ${info.unit}`;
+                const row = document.createElement('div');
+                row.className = 'item-row';
+                row.onclick = () => selectLeaveType(typeName, subText);
+                row.innerHTML = `
+                    <span>${typeName}</span>
+                    <div class="item-left"><span class="item-sub-text">${subText}</span><span class="item-add-icon">+</span></div>
+                `;
+                container.appendChild(row);
+            }
+        }
+
+        function openModal() {
+            // 每次打開彈窗時重新載入最新餘額
+            let userBalances = JSON.parse(localStorage.getItem('user_leave_balance')) || defaultBalances;
+            renderLeaveTypeList(userBalances);
+            document.getElementById('leave-modal').style.display = 'flex';
+        }
+
+        function openLeaveTypeModal() {
+            document.getElementById('leave-type-modal').style.display = 'flex';
+        }
+
+        function openReasonModal() {
+            document.getElementById('sub-modal').style.display = 'flex';
+        }
+
+        function openAgentModal() {
+            document.getElementById('agent-modal').style.display = 'flex';
+        }
+
+        function closeSubModals() {
+            document.getElementById('leave-type-modal').style.display = 'none';
+            document.getElementById('sub-modal').style.display = 'none';
+            document.getElementById('agent-modal').style.display = 'none';
+        }
+
+        function selectLeaveType(typeName, remainingText) {
+            document.getElementById('leave-type-value').value = typeName;
+            const displayEl = document.getElementById('leave-type-display');
+            displayEl.innerHTML = `<span>${typeName} (${remainingText})</span><span style="font-size: 12px;">▼</span>`;
+            displayEl.style.color = '#111';
+            closeSubModals();
+        }
+
+        function selectReason(reasonText) {
+            document.getElementById('leave-reason').value = reasonText;
+            closeSubModals();
+        }
+
+        function selectAgent(agentName) {
+            document.getElementById('agent-value').value = agentName;
+            const displayEl = document.getElementById('agent-display');
+            displayEl.innerHTML = `<span>${agentName}</span><span style="font-size: 12px;">▼</span>`;
+            displayEl.style.color = '#111';
+            closeSubModals();
+        }
+
+        function submitLeave() {
+            const type = document.getElementById('leave-type-value').value;
+            const startTime = document.getElementById('start-time').value;
+            const endTime = document.getElementById('end-time').value;
+            const reason = document.getElementById('leave-reason').value.trim();
+            const agent = document.getElementById('agent-value').value;
+
+            if (!type || !startTime || !endTime) {
+                alert('請完整填寫假別與起訖時間！');
+                return;
+            }
+            if (!agent) {
+                alert('請選擇代理人！');
+                return;
+            }
+
+            // 計算請假天數（簡單以結束日期與開始日期的天數差計算，若小於 1 天則算 1 天）
+            const start = new Date(startTime);
+            const end = new Date(endTime);
+            let diffDays = Math.ceil(Math.abs(end - start) / (1000 * 60 * 60 * 24));
+            if (diffDays === 0) diffDays = 1; // 至少算 1 天
+
+            const currentUser = JSON.parse(localStorage.getItem('current_user')) || { name: '王小明' };
+
+            const newRecord = {
+                id: Date.now(),
+                userName: currentUser.name,
+                type: type,
+                days: diffDays, // 記錄請假天數，便於主管審核通過後扣除
+                startDate: startTime.replace('T', ' '),
+                endDate: endTime.replace('T', ' '),
+                reason: reason || '無',
+                agent: agent,
+                status: 'pending',
+                timestamp: new Date().toLocaleDateString()
+            };
+
+            let leaveRecords = JSON.parse(localStorage.getItem('leave_records')) || [];
+            leaveRecords.push(newRecord);
+            localStorage.setItem('leave_records', JSON.stringify(leaveRecords));
+
+            alert('請假申請已送出！');
+            window.location.href = 'home.html';
+        }
+    </script>
+</body>
+</html>

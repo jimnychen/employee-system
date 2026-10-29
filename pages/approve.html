@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>表單簽核</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: #f2f4f7;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex; justify-content: center; align-items: center; min-height: 100vh;
+        }
+        .phone-frame {
+            width: 393px; height: 852px; background-color: #ffffff; border-radius: 48px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15); position: relative; overflow-y: auto; display: flex; flex-direction: column; padding: 24px 20px;
+        }
+        .top-bar {
+            display: flex; align-items: center; margin-bottom: 16px;
+        }
+        .back-btn {
+            background: none; border: none; font-size: 18px; font-weight: bold; color: #3b82f6; cursor: pointer; text-decoration: none;
+        }
+        .page-title {
+            flex: 1; text-align: center; font-size: 18px; font-weight: bold; color: #111; margin-right: 24px;
+        }
+
+        /* 分類頁籤樣式 */
+        .tabs {
+            display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;
+        }
+        .tab-btn {
+            flex: 1; background-color: #f1f5f9; border: none; border-radius: 10px; padding: 8px 0;
+            font-size: 13px; font-weight: bold; color: #64748b; cursor: pointer; text-align: center;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            background-color: #3b82f6; color: white;
+        }
+
+        /* 列表容器 */
+        .list-container {
+            display: flex; flex-direction: column; gap: 12px; flex: 1; overflow-y: auto;
+        }
+        .card {
+            background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px;
+            display: flex; flex-direction: column; gap: 8px;
+        }
+        .card-header {
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .card-type {
+            font-size: 12px; font-weight: bold; padding: 2px 8px; border-radius: 6px; background-color: #e0f2fe; color: #0369a1;
+        }
+        .card-user {
+            font-size: 15px; font-weight: bold; color: #1e293b;
+        }
+        .card-body {
+            font-size: 13px; color: #475569; line-height: 1.4;
+        }
+        .card-actions {
+            display: flex; gap: 10px; margin-top: 8px;
+        }
+        .btn-approve {
+            flex: 1; background-color: #22c55e; color: white; border: none; border-radius: 8px; padding: 8px; font-weight: bold; cursor: pointer;
+        }
+        .btn-approve:hover { background-color: #16a34a; }
+        .btn-reject {
+            flex: 1; background-color: #ef4444; color: white; border: none; border-radius: 8px; padding: 8px; font-weight: bold; cursor: pointer;
+        }
+        .btn-reject:hover { background-color: #dc2626; }
+        .empty-state {
+            text-align: center; color: #94a3b8; margin-top: 80px; font-size: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="phone-frame">
+        <div class="top-bar">
+            <a class="back-btn" href="home.html">‹ 返回</a>
+            <div class="page-title">表單簽核</div>
+        </div>
+
+        <!-- 分類頁籤 -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('leave')">請假申請</button>
+            <button class="tab-btn" onclick="switchTab('overtime')">加班申請</button>
+            <button class="tab-btn" onclick="switchTab('trip')">出差申請</button>
+        </div>
+
+        <div id="approval-list" class="list-container">
+            <!-- 動態載入 -->
+        </div>
+    </div>
+
+    <script>
+        let currentTab = 'leave'; // 預設顯示請假申請
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            if (tab === 'leave') document.querySelectorAll('.tab-btn')[0].classList.add('active');
+            if (tab === 'overtime') document.querySelectorAll('.tab-btn')[1].classList.add('active');
+            if (tab === 'trip') document.querySelectorAll('.tab-btn')[2].classList.add('active');
+            loadPendingForms();
+        }
+
+        function loadPendingForms() {
+            const container = document.getElementById('approval-list');
+            
+            let storageKey = '';
+            let formTypeName = '';
+            if (currentTab === 'leave') { storageKey = 'leave_records'; formTypeName = '請假申請'; }
+            if (currentTab === 'overtime') { storageKey = 'overtime_records'; formTypeName = '加班申請'; }
+            if (currentTab === 'trip') { storageKey = 'trip_records'; formTypeName = '出差申請'; }
+
+            const records = JSON.parse(localStorage.getItem(storageKey)) || [];
+            const pendingList = records.filter(r => r.status === 'pending');
+
+            if (pendingList.length === 0) {
+                container.innerHTML = `<div class="empty-state">目前沒有${formTypeName}需要簽核 🎉</div>`;
+                return;
+            }
+
+            container.innerHTML = '';
+            pendingList.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                
+                let bodyContent = '';
+                if (currentTab === 'leave') {
+                    bodyContent = `類別：${item.type || item.leaveType || '事假'}<br>時間：${item.startDate || ''} ~ ${item.endDate || ''}<br>原因：${item.reason || ''}`;
+                } else if (currentTab === 'overtime') {
+                    bodyContent = `日期：${item.date || item.startDate || ''}<br>時數：${item.hours || ''} 小時<br>原因：${item.reason || ''}`;
+                } else if (currentTab === 'trip') {
+                    bodyContent = `地點：${item.destination || ''}<br>時間：${item.startDate || ''} ~ ${item.endDate || ''}<br>事由：${item.reason || ''}`;
+                }
+
+                card.innerHTML = `
+                    <div class="card-header">
+                        <span class="card-type">${formTypeName}</span>
+                        <span style="font-size: 12px; color: #94a3b8;">${item.timestamp || ''}</span>
+                    </div>
+                    <div class="card-user">申請人：${item.userName || '劉O瑜'}</div>
+                    <div class="card-body">${bodyContent}</div>
+                    <div class="card-actions">
+                        <button class="btn-approve" onclick="updateStatus('${item.id}', '${storageKey}', 'approved')">同意</button>
+                        <button class="btn-reject" onclick="updateStatus('${item.id}', '${storageKey}', 'rejected')">拒絕</button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function updateStatus(id, storageKey, newStatus) {
+            let records = JSON.parse(localStorage.getItem(storageKey)) || [];
+            records = records.map(r => {
+                if (String(r.id) === String(id)) {
+                    r.status = newStatus;
+                    r.viewedByUser = false; 
+                }
+                return r;
+            });
+            localStorage.setItem(storageKey, JSON.stringify(records));
+            loadPendingForms(); 
+        }
+
+        window.addEventListener('DOMContentLoaded', loadPendingForms);
+    </script>
+</body>
+</html>

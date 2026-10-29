@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>申請紀錄</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: #f2f4f7;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex; justify-content: center; align-items: center; min-height: 100vh;
+        }
+        .phone-frame {
+            width: 393px; height: 852px; background-color: #ffffff; border-radius: 48px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15); position: relative; overflow: hidden; display: flex; flex-direction: column; padding: 24px 20px;
+        }
+        .top-bar {
+            display: flex; align-items: center; margin-bottom: 20px;
+        }
+        .back-btn {
+            background: none; border: none; font-size: 18px; font-weight: bold; color: #3b82f6; cursor: pointer; text-decoration: none;
+        }
+        .page-title-main {
+            flex: 1; text-align: center; font-size: 18px; font-weight: bold; color: #111; margin-right: 24px;
+        }
+
+        /* 紀錄列表容器 */
+        .record-list {
+            flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-bottom: 20px;
+        }
+        .record-card {
+            background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 16px; padding: 16px;
+            display: flex; flex-direction: column; gap: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .record-header {
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .record-type {
+            font-size: 16px; font-weight: bold; color: #111;
+        }
+        .record-status {
+            font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 20px;
+        }
+        .status-pending { background-color: #fef3c7; color: #d97706; }
+        .status-approved { background-color: #d1fae5; color: #059669; }
+        .status-rejected { background-color: #fee2e2; color: #dc2626; }
+
+        .record-body {
+            font-size: 13px; color: #4b5563; display: flex; flex-direction: column; gap: 4px;
+        }
+        .record-time {
+            font-size: 12px; color: #6b7280;
+        }
+        .empty-state {
+            text-align: center; color: #9ca3af; margin-top: 100px; font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="phone-frame">
+        <div class="top-bar">
+            <a class="back-btn" href="home.html">‹ 返回</a>
+            <div class="page-title-main">申請紀錄</div>
+        </div>
+
+        <div id="record-container" class="record-list">
+            <!-- 動態載入紀錄 -->
+        </div>
+    </div>
+
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('record-container');
+            
+            // 從 localStorage 同時讀取請假、加班、出差紀錄
+            const leaveRecords = JSON.parse(localStorage.getItem('leave_records')) || [];
+            const overtimeRecords = JSON.parse(localStorage.getItem('overtime_records')) || [];
+            const tripRecords = JSON.parse(localStorage.getItem('trip_records')) || [];
+
+            // 合併所有紀錄
+            const allRecords = [...leaveRecords, ...overtimeRecords, ...tripRecords];
+
+            if (allRecords.length === 0) {
+                container.innerHTML = `<div class="empty-state">目前沒有任何申請紀錄</div>`;
+                return;
+            }
+
+            container.innerHTML = '';
+
+            // 依據 timestamp 時間倒序排列（最新的在最上面）
+            allRecords.sort((a, b) => {
+                return new Date(b.timestamp || 0) - new Date(a.timestamp || 0);
+            });
+
+            allRecords.forEach(record => {
+                const card = document.createElement('div');
+                card.className = 'record-card';
+
+                // 狀態樣式與中文對應
+                let statusText = '審核中';
+                let statusClass = 'status-pending';
+                if (record.status === 'approved') {
+                    statusText = '已核准';
+                    statusClass = 'status-approved';
+                } else if (record.status === 'rejected') {
+                    statusText = '已退回';
+                    statusClass = 'status-rejected';
+                }
+
+                // 依據不同表單類型顯示對應的內容欄位
+                let bodyContent = '';
+                if (record.type && record.type.includes('加班')) {
+                    bodyContent = `
+                        <div class="record-time">日期：${record.date || ''}</div>
+                        <div class="record-time">時間：${record.startTime || ''} ~ ${record.endTime || ''} (${record.hours || 0}小時)</div>
+                        <div>加班事由：${record.reason || ''}</div>
+                    `;
+                } else {
+                    bodyContent = `
+                        <div class="record-time">起訖：${record.startDate || ''} ~ ${record.endDate || ''}</div>
+                        <div>請假事由：${record.reason || ''}</div>
+                        <div>代理人：${record.agent || ''}</div>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div class="record-header">
+                        <span class="record-type">${record.type || '申請表單'}</span>
+                        <span class="record-status ${statusClass}">${statusText}</span>
+                    </div>
+                    <div class="record-body">
+                        ${bodyContent}
+                        <div style="font-size: 11px; color: #9ca3af; margin-top: 4px;">送出時間：${record.timestamp || '未知'}</div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        });
+    </script>
+</body>
+</html>
