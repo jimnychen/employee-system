@@ -62,6 +62,7 @@
             display: flex; align-items: center; justify-content: center; position: relative;
             transition: background-color 0.2s;
         }
+        .menu-btn[hidden] { display: none; }
         .menu-btn:hover { background-color: #e0f2fe; }
         .menu-btn-full { grid-column: span 2; }
 
@@ -88,7 +89,8 @@
             font-size: 16px; font-weight: bold; color: #333; cursor: pointer;
         }
         .modal-icon { margin: 12px auto 16px; display: flex; justify-content: center; align-items: center; }
-        .modal-text { font-size: 16px; font-weight: bold; color: #111; line-height: 1.5; }
+        .modal-text { font-size: 16px; font-weight: bold; color: #111; line-height: 1.5; white-space: pre-line; }
+        .clock-btn:disabled { opacity: 0.6; cursor: wait; }
     </style>
 </head>
 <body>
@@ -143,6 +145,10 @@
                 表單簽核
                 <span id="pending-badge" class="badge">0</span>
             </button>
+
+            <button id="user-management-btn" class="menu-btn menu-btn-full" onclick="location.href='users.html'" hidden>
+                使用者管理
+            </button>
         </div>
     </div>
 
@@ -158,6 +164,7 @@
         function handleLogout() {
             localStorage.removeItem('current_user');
             localStorage.removeItem('current_role');
+            localStorage.removeItem('token');
             window.location.href = 'login.html';
         }
 
@@ -170,7 +177,9 @@
 
             document.getElementById('user-name').innerText = savedUser.name;
             document.getElementById('user-title').innerText = savedUser.title;
-            document.getElementById('role-display-tag').innerText = `身分：${savedUser.role === 'manager' ? '主管' : '一般員工'}`;
+            const roleNames = { admin: '管理員', manager: '主管', employee: '一般員工' };
+            document.getElementById('role-display-tag').innerText = `身分：${roleNames[savedUser.role] || '一般員工'}`;
+            document.getElementById('user-management-btn').hidden = savedUser.role !== 'admin';
         }
 
         function updateClock() {
@@ -201,21 +210,58 @@
                         const userLng = position.coords.longitude;
                         const distanceKm = getDistanceFromLatLonInKm(userLat, userLng, COMPANY_LAT, COMPANY_LNG);
 
-                        // 測試期間若您在瀏覽器沒設 Sensors，可直接把這行條件改為 true 或放寬
-                        if (distanceKm <= ALLOWED_DISTANCE_KM || true) { 
-                            showClockResult(true, type);
+                        if (distanceKm <= ALLOWED_DISTANCE_KM || true) {
+                            saveClockRecord(type);
                         } else {
-                            showClockResult(false, type);
+                            showClockResult(false, type, '您的位置不在打卡範圍內');
                         }
                     },
-                    (error) => {
+                    () => {
                         // 瀏覽器抓不到真實手機 GPS 時，直接判定成功（方便您在電腦測試）
-                        showClockResult(true, type);
+                        saveClockRecord(type);
                     },
                     { timeout: 8000, enableHighAccuracy: true }
                 );
             } else {
-                showClockResult(true, type);
+                saveClockRecord(type);
+            }
+        }
+
+        async function saveClockRecord(type) {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const clockButtons = document.querySelectorAll('.clock-btn');
+            clockButtons.forEach(button => { button.disabled = true; });
+
+            try {
+                const response = await fetch(type === '上班' ? '/api/clockIN' : '/api/clockOUT', {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                if (response.redirected) {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('current_user');
+                    localStorage.removeItem('current_role');
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const result = await response.json();
+                if (!response.ok) {
+                    throw new Error(result.error || '打卡失敗，請稍後再試');
+                }
+
+                const record = result.data;
+                const timestamp = type === '上班' ? record.clockInTime : record.clockOutTime;
+                showClockResult(true, type, '', timestamp);
+            } catch (error) {
+                showClockResult(false, type, error instanceof Error ? error.message : '無法連線至伺服器');
+            } finally {
+                clockButtons.forEach(button => { button.disabled = false; });
             }
         }
 
@@ -235,15 +281,14 @@
             return deg * (Math.PI / 180);
         }
 
-        function showClockResult(isSuccess, type) {
+        function showClockResult(isSuccess, type, message = '', timestamp = new Date().toISOString()) {
             const overlay = document.getElementById('modal-overlay');
             const content = document.getElementById('modal-content');
-            
-            const now = new Date();
-            const dateStr = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
-            const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
             if (isSuccess) {
+                const clockTime = new Date(timestamp);
+                const dateStr = `${clockTime.getFullYear()}/${String(clockTime.getMonth() + 1).padStart(2, '0')}/${String(clockTime.getDate()).padStart(2, '0')}`;
+                const timeStr = `${String(clockTime.getHours()).padStart(2, '0')}:${String(clockTime.getMinutes()).padStart(2, '0')}`;
                 content.innerHTML = `
                     <div class="modal-icon">
                         <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2">
@@ -259,8 +304,9 @@
                     <div class="modal-icon">
                         <div style="width: 64px; height: 64px; background-color: #111; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 40px; font-weight: bold;">!</div>
                     </div>
-                    <div class="modal-text">${type}打卡失敗<br>您的位置不在打卡範圍內</div>
+                    <div class="modal-text"></div>
                 `;
+                content.querySelector('.modal-text').textContent = `${type}打卡失敗\n${message}`;
             }
 
             overlay.style.display = 'flex';

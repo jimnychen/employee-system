@@ -144,31 +144,29 @@ Body:
 }
 ```
 
+### 使用者管理
+
+使用者管理頁面為 `http://localhost:3000/users.html`，只有管理員可以操作。
+管理 API 請在 `Authorization` 標頭帶入登入時取得的 `Bearer <token>`：
+
+- `GET /api/users`：取得使用者列表。
+- `POST /api/users`：新增使用者，需提供 `username`、`password`、`name`、`role`。
+- `PUT /api/users/:id`：修改使用者資料與權限；`password` 可省略，留空時不修改密碼。
+- `DELETE /api/users/:id`：刪除使用者。不能刪除目前登入的管理員，也不能刪除最後一位管理員。
+
+可設定的 `role` 為 `admin`、`manager`、`employee`。
+
 ### 3. 上班打卡
 
 `POST /api/clockIN`
 
-Body:
-
-```json
-{
-  "employeeId": 4,
-  "clockInTime": "2024-06-01T09:00:00Z"
-}
-```
+需在 `Authorization` 標頭帶入登入時取得的 `Bearer <token>`。伺服器會依 token 識別使用者並記錄打卡時間，不接受用戶端指定員工 ID 或打卡時間。每位使用者每天只能新增一筆上班打卡。
 
 ### 4. 下班打卡
 
 `POST /api/clockOUT`
 
-Body:
-
-```json
-{
-  "employeeId": 4,
-  "clockOutTime": "2024-06-01T18:00:00Z"
-}
-```
+需帶入相同的 `Bearer <token>`。伺服器會更新該使用者今天尚未下班的打卡紀錄，並記錄下班時間；若今天沒有上班紀錄則回傳 `404`。
 
 ### 5. 申請請假
 

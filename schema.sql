@@ -1,5 +1,12 @@
- 
+-- Active: 1780296199398@@127.0.0.1@5432@employee_system
+
 -- PostgreSQL schema for attendance system used by this project
+DROP DATABASE IF EXISTS employee_system;
+CREATE DATABASE employee_system;
+
+DROP TABLE IF EXISTS attendance_records;
+DROP TABLE IF EXISTS requests;
+DROP TABLE IF EXISTS users;
 
 CREATE TABLE users (
     id serial PRIMARY KEY,
@@ -10,7 +17,6 @@ CREATE TABLE users (
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now()
 );
-
 CREATE TABLE attendance_records (
     id serial PRIMARY KEY,
     employee_id integer NOT NULL REFERENCES users(id) ON DELETE CASCADE,

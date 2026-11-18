@@ -1,3 +1,5 @@
+-- Active: 1780296199398@@127.0.0.1@5432@employee_system
+-- Active: 1780296199398@@127.0.0.1@5432@postgres780296199398@@127.0.0.1@5432@postgres780296199398@@127.0.0.1@5432@employee_system
 -- 測試資料 Seed
 -- 注意：密碼為 bcryptjs 加密的雜湊值
 -- password: "password123" -> $2a$10$28cE9y1.ByILvXIG14jvz.UI.SShwOC.Zv5IwAPa5bUWtfDf/aXju
@@ -39,3 +41,4 @@ INSERT INTO requests (employee_id, request_type, leave_type, start_time, end_tim
     -- 加班申請
     (4, 'overtime', NULL, '2024-06-01 18:00:00+08:00', '2024-06-01 20:00:00+08:00', '專案趕工', 2, 'Approved', '核准加班'),
     (5, 'overtime', NULL, '2024-06-02 18:00:00+08:00', '2024-06-02 19:00:00+08:00', '系統維護', 2, 'Pending', NULL);
+    ALTER DATABASE employee_system OWNER TO employee_system

@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>使用者管理</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            min-height: 100vh; display: flex; justify-content: center; align-items: flex-start;
+            padding: 24px 12px; background: #f2f4f7;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        .phone-frame {
+            width: min(100%, 760px); min-height: 600px; padding: 24px;
+            background: #fff; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,.12);
+        }
+        .top-bar { display: flex; align-items: center; margin-bottom: 24px; }
+        .back-btn { color: #3b82f6; font-weight: bold; text-decoration: none; }
+        h1 { flex: 1; text-align: center; margin-right: 48px; font-size: 20px; color: #111827; }
+        h2 { margin-bottom: 16px; font-size: 17px; color: #1f2937; }
+        .panel { padding: 20px; margin-bottom: 20px; border: 1px solid #e5e7eb; border-radius: 16px; }
+        .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+        label { display: flex; flex-direction: column; gap: 7px; color: #475569; font-size: 13px; font-weight: 600; }
+        input, select {
+            width: 100%; padding: 11px 12px; border: 1px solid #cbd5e1; border-radius: 9px;
+            background: #fff; color: #111827; font: inherit;
+        }
+        .hint { margin-top: 6px; color: #64748b; font-size: 12px; font-weight: 400; }
+        .form-actions { display: flex; gap: 10px; margin-top: 16px; }
+        button {
+            padding: 10px 14px; border: 0; border-radius: 9px; font: inherit; font-weight: 600; cursor: pointer;
+        }
+        button:disabled { opacity: .6; cursor: wait; }
+        .primary-btn { background: #3b82f6; color: #fff; }
+        .secondary-btn { background: #e2e8f0; color: #334155; }
+        .delete-btn { background: #fee2e2; color: #b91c1c; }
+        .message { min-height: 20px; margin: 8px 0; color: #b91c1c; font-size: 13px; }
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th, td { padding: 12px 10px; border-bottom: 1px solid #e5e7eb; white-space: nowrap; }
+        th { color: #64748b; font-size: 12px; }
+        td { color: #334155; font-size: 14px; }
+        .row-actions { display: flex; gap: 8px; }
+        .empty-state { padding: 24px 8px; color: #64748b; text-align: center; }
+        @media (max-width: 520px) {
+            .phone-frame { padding: 18px 14px; }
+            .panel { padding: 14px; }
+            .form-grid { grid-template-columns: 1fr; }
+            h1 { font-size: 18px; }
+        }
+    </style>
+</head>
+<body>
+    <main class="phone-frame">
+        <div class="top-bar">
+            <a class="back-btn" href="home.html">‹ 返回</a>
+            <h1>使用者管理</h1>
+        </div>
+
+        <section class="panel" aria-labelledby="form-title">
+            <h2 id="form-title">新增使用者</h2>
+            <form id="user-form">
+                <div class="form-grid">
+                    <label>
+                        帳號
+                        <input id="username" name="username" autocomplete="off" required>
+                    </label>
+                    <label>
+                        姓名
+                        <input id="name" name="name" autocomplete="name">
+                    </label>
+                    <label>
+                        密碼
+                        <input id="password" name="password" type="password" autocomplete="new-password">
+                        <span id="password-hint" class="hint">新增使用者時必填</span>
+                    </label>
+                    <label>
+                        使用者權限
+                        <select id="role" name="role" required>
+                            <option value="employee">一般員工</option>
+                            <option value="manager">主管</option>
+                            <option value="admin">管理員</option>
+                        </select>
+                    </label>
+                </div>
+                <p id="form-message" class="message" role="alert" aria-live="polite"></p>
+                <div class="form-actions">
+                    <button id="submit-button" class="primary-btn" type="submit">新增使用者</button>
+                    <button id="cancel-button" class="secondary-btn" type="button" hidden>取消編輯</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="panel" aria-labelledby="list-title">
+            <h2 id="list-title">使用者列表</h2>
+            <p id="list-message" class="message" role="alert" aria-live="polite"></p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr><th>帳號</th><th>姓名</th><th>權限</th><th>操作</th></tr>
+                    </thead>
+                    <tbody id="user-list"></tbody>
+                </table>
+                <p id="empty-state" class="empty-state" hidden>目前沒有使用者資料</p>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const roleNames = { admin: '管理員', manager: '主管', employee: '一般員工' };
+        const token = localStorage.getItem('token');
+        const currentUser = JSON.parse(localStorage.getItem('current_user') || 'null');
+        let editingUserId = null;
+        let users = [];
+
+        function redirectToLogin() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('current_user');
+            localStorage.removeItem('current_role');
+            window.location.replace('login.html');
+        }
+
+        const isAdminSession = Boolean(token && currentUser && currentUser.role === 'admin');
+        if (!isAdminSession) {
+            redirectToLogin();
+        }
+
+        async function apiRequest(path, options = {}) {
+            const headers = {
+                Authorization: `Bearer ${token}`,
+                ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+                ...options.headers
+            };
+            const response = await fetch(`/api/users${path}`, { ...options, headers });
+            if (response.redirected) {
+                redirectToLogin();
+                throw new Error('登入已失效，請重新登入');
+            }
+
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.error || '操作失敗，請稍後再試');
+            }
+            return result;
+        }
+
+        function showMessage(elementId, message = '') {
+            document.getElementById(elementId).textContent = message;
+        }
+
+        function resetForm() {
+            editingUserId = null;
+            document.getElementById('user-form').reset();
+            document.getElementById('form-title').textContent = '新增使用者';
+            document.getElementById('password').required = true;
+            document.getElementById('role').disabled = false;
+            document.getElementById('password-hint').textContent = '新增使用者時必填';
+            document.getElementById('submit-button').textContent = '新增使用者';
+            document.getElementById('cancel-button').hidden = true;
+            showMessage('form-message');
+        }
+
+        function editUser(userId) {
+            const user = users.find(item => item.id === userId);
+            if (!user) return;
+
+            editingUserId = user.id;
+            document.getElementById('username').value = user.username;
+            document.getElementById('name').value = user.name || '';
+            const roleInput = document.getElementById('role');
+            roleInput.value = user.role;
+            roleInput.disabled = user.id === currentUser.id;
+            document.getElementById('password').value = '';
+            document.getElementById('password').required = false;
+            document.getElementById('password-hint').textContent = '留空表示不修改密碼';
+            document.getElementById('form-title').textContent = `修改使用者：${user.username}`;
+            document.getElementById('submit-button').textContent = '儲存修改';
+            document.getElementById('cancel-button').hidden = false;
+            showMessage('form-message');
+            document.getElementById('username').focus();
+        }
+
+        function renderUsers() {
+            const list = document.getElementById('user-list');
+            list.replaceChildren();
+            document.getElementById('empty-state').hidden = users.length > 0;
+
+            users.forEach(user => {
+                const row = document.createElement('tr');
+                for (const value of [user.username, user.name || '—', roleNames[user.role] || user.role]) {
+                    const cell = document.createElement('td');
+                    cell.textContent = value;
+                    row.appendChild(cell);
+                }
+
+                const actions = document.createElement('td');
+                const actionGroup = document.createElement('div');
+                actionGroup.className = 'row-actions';
+                const editButton = document.createElement('button');
+                editButton.type = 'button';
+                editButton.className = 'secondary-btn';
+                editButton.textContent = '修改';
+                editButton.addEventListener('click', () => editUser(user.id));
+                actionGroup.appendChild(editButton);
+
+                if (user.id !== currentUser.id) {
+                    const deleteButton = document.createElement('button');
+                    deleteButton.type = 'button';
+                    deleteButton.className = 'delete-btn';
+                    deleteButton.textContent = '刪除';
+                    deleteButton.addEventListener('click', () => deleteUser(user));
+                    actionGroup.appendChild(deleteButton);
+                }
+                actions.appendChild(actionGroup);
+                row.appendChild(actions);
+                list.appendChild(row);
+            });
+        }
+
+        async function loadUsers() {
+            showMessage('list-message');
+            try {
+                const result = await apiRequest('');
+                users = result.data;
+                renderUsers();
+            } catch (error) {
+                showMessage('list-message', error.message);
+            }
+        }
+
+        async function deleteUser(user) {
+            if (!window.confirm(`確定要刪除使用者「${user.username}」嗎？`)) return;
+            showMessage('list-message');
+            try {
+                await apiRequest(`/${user.id}`, { method: 'DELETE' });
+                if (editingUserId === user.id) resetForm();
+                await loadUsers();
+            } catch (error) {
+                showMessage('list-message', error.message);
+            }
+        }
+
+        document.getElementById('user-form').addEventListener('submit', async event => {
+            event.preventDefault();
+            const password = document.getElementById('password').value;
+            const payload = {
+                username: document.getElementById('username').value.trim(),
+                name: document.getElementById('name').value.trim(),
+                role: document.getElementById('role').value
+            };
+            if (password) payload.password = password;
+
+            const isEditing = editingUserId !== null;
+            if (!isEditing && !password) {
+                showMessage('form-message', '請輸入初始密碼');
+                return;
+            }
+
+            const submitButton = document.getElementById('submit-button');
+            submitButton.disabled = true;
+            showMessage('form-message');
+            try {
+                await apiRequest(isEditing ? `/${editingUserId}` : '', {
+                    method: isEditing ? 'PUT' : 'POST',
+                    body: JSON.stringify(payload)
+                });
+                resetForm();
+                await loadUsers();
+            } catch (error) {
+                showMessage('form-message', error.message);
+            } finally {
+                submitButton.disabled = false;
+            }
+        });
+
+        document.getElementById('cancel-button').addEventListener('click', resetForm);
+        if (isAdminSession) loadUsers();
+    </script>
+</body>
+</html>

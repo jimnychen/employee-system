@@ -8,6 +8,7 @@ require('dotenv').config();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'secret_key';
 const saltRounds = 10;
+const allowedRoles = ['admin', 'manager', 'employee'];
 
 // 角色檢查
 const checkRole = require('./checkRole.js').checkRole;
@@ -46,58 +47,170 @@ router.post('/login', async (req, res) => {
     }
 });
 
-// 註冊使用者
-router.post('/register', authenticateToken, checkRole(['admin']), async (req, res) => {
-    const { username, password, name, role } = req.body;
+// 使用者管理（僅管理員）
+router.get('/users', authenticateToken, checkRole(['admin']), async (req, res) => {
     try {
-        const hashedPassword = await bcrypt.hash(password, saltRounds);
-        const user = await User.create({
-            username,
-            password: hashedPassword,
-            name,
-            role: role || 'employee'
+        const users = await User.findAll({
+            attributes: ['id', 'username', 'name', 'role', 'createdAt'],
+            order: [['id', 'ASC']]
         });
-        res.status(201).json({ 
-            message: '使用者註冊成功', 
-            data: { id: user.id, username: user.username } 
+        res.status(200).json({ data: users });
+    } catch (error) {
+        console.error('取得使用者列表失敗:', error);
+        res.status(500).json({ error: '無法取得使用者列表' });
+    }
+});
+
+router.post('/users', authenticateToken, checkRole(['admin']), async (req, res) => {
+    const { username, password, name, role } = req.body || {};
+    if (typeof username !== 'string' || !username.trim() ||
+        typeof password !== 'string' || !password ||
+        typeof role !== 'string' || !allowedRoles.includes(role)) {
+        return res.status(400).json({ error: '請提供帳號、密碼與有效的使用者權限' });
+    }
+
+    try {
+        const user = await User.create({
+            username: username.trim(),
+            password: await bcrypt.hash(password, saltRounds),
+            name: typeof name === 'string' ? name.trim() : '',
+            role
+        });
+        res.status(201).json({
+            message: '使用者新增成功',
+            data: { id: user.id, username: user.username, name: user.name, role: user.role }
         });
     } catch (error) {
-        res.status(500).json({ error: '系統錯誤: ' + error.message });
+        if (error.name === 'SequelizeUniqueConstraintError') {
+            return res.status(409).json({ error: '此帳號已存在' });
+        }
+        console.error('新增使用者失敗:', error);
+        res.status(500).json({ error: '新增使用者失敗' });
+    }
+});
+
+router.put('/users/:id', authenticateToken, checkRole(['admin']), async (req, res) => {
+    const userId = Number(req.params.id);
+    const { username, password, name, role } = req.body || {};
+    if (!Number.isInteger(userId) || userId <= 0 ||
+        typeof username !== 'string' || !username.trim() ||
+        typeof role !== 'string' || !allowedRoles.includes(role) ||
+        (name !== undefined && typeof name !== 'string') ||
+        (password !== undefined && typeof password !== 'string')) {
+        return res.status(400).json({ error: '使用者資料無效' });
+    }
+
+    try {
+        const user = await User.findByPk(userId);
+        if (!user) {
+            return res.status(404).json({ error: '使用者不存在' });
+        }
+        if (user.id === req.user.id && role !== 'admin') {
+            return res.status(400).json({ error: '不能移除自己的管理員權限' });
+        }
+        if (user.role === 'admin' && role !== 'admin') {
+            const otherAdmins = await User.count({
+                where: { role: 'admin', id: { [Op.ne]: user.id } }
+            });
+            if (otherAdmins === 0) {
+                return res.status(400).json({ error: '系統至少需要一位管理員' });
+            }
+        }
+
+        user.username = username.trim();
+        user.name = typeof name === 'string' ? name.trim() : user.name;
+        user.role = role;
+        if (password) {
+            user.password = await bcrypt.hash(password, saltRounds);
+        }
+        await user.save();
+
+        res.status(200).json({
+            message: '使用者資料已更新',
+            data: { id: user.id, username: user.username, name: user.name, role: user.role }
+        });
+    } catch (error) {
+        if (error.name === 'SequelizeUniqueConstraintError') {
+            return res.status(409).json({ error: '此帳號已存在' });
+        }
+        console.error('更新使用者失敗:', error);
+        res.status(500).json({ error: '更新使用者失敗' });
+    }
+});
+
+router.delete('/users/:id', authenticateToken, checkRole(['admin']), async (req, res) => {
+    const userId = Number(req.params.id);
+    if (!Number.isInteger(userId) || userId <= 0) {
+        return res.status(400).json({ error: '使用者 ID 無效' });
+    }
+
+    try {
+        const user = await User.findByPk(userId);
+        if (!user) {
+            return res.status(404).json({ error: '使用者不存在' });
+        }
+        if (user.id === req.user.id) {
+            return res.status(400).json({ error: '不能刪除目前登入的管理員帳號' });
+        }
+        if (user.role === 'admin') {
+            const otherAdmins = await User.count({
+                where: { role: 'admin', id: { [Op.ne]: user.id } }
+            });
+            if (otherAdmins === 0) {
+                return res.status(400).json({ error: '系統至少需要一位管理員' });
+            }
+        }
+
+        await user.destroy();
+        res.status(200).json({ message: '使用者已刪除' });
+    } catch (error) {
+        console.error('刪除使用者失敗:', error);
+        res.status(500).json({ error: '刪除使用者失敗' });
     }
 });
 
 // 1. 上班打卡
 router.post('/clockIN', authenticateToken, checkRole(['employee', 'manager', 'admin']), async (req, res) => {
-    const { employeeId, clockInTime } = req.body;
     try {
-        const record = await AttendanceRecord.create({ 
-            employeeId, 
-            clockInTime: clockInTime || new Date(), 
-            status: 'IN' 
+        const record = await AttendanceRecord.create({
+            employeeId: req.user.id,
+            clockInTime: new Date(),
+            status: 'IN'
         });
         res.status(201).json({ message: '打卡上班成功', data: record });
     } catch (error) {
-        res.status(500).json({ error: '系統錯誤: ' + error.message });
+        if (error.name === 'SequelizeUniqueConstraintError' || error.original?.code === '23505') {
+            return res.status(409).json({ error: '今天已完成上班打卡' });
+        }
+        console.error('上班打卡失敗:', error);
+        res.status(500).json({ error: '上班打卡失敗，請稍後再試' });
     }
 });
 
 // 2. 下班打卡
 router.post('/clockOUT', authenticateToken, checkRole(['employee', 'manager', 'admin']), async (req, res) => {
-    const { employeeId, clockOutTime } = req.body;
     try {
+        const taipeiDateParts = new Intl.DateTimeFormat('en', {
+            timeZone: 'Asia/Taipei',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        }).formatToParts(new Date());
+        const taipeiDate = `${taipeiDateParts.find(part => part.type === 'year').value}-${taipeiDateParts.find(part => part.type === 'month').value}-${taipeiDateParts.find(part => part.type === 'day').value}`;
         const record = await AttendanceRecord.findOne({
-            where: { employeeId, status: 'IN' },
+            where: { employeeId: req.user.id, status: 'IN', recordDate: taipeiDate },
             order: [['clockInTime', 'DESC']]
         });
         if (!record) {
-            return res.status(404).json({ error: '未找到上班紀錄' });
+            return res.status(404).json({ error: '今天尚未完成上班打卡' });
         }
-        record.clockOutTime = clockOutTime || new Date();
+        record.clockOutTime = new Date();
         record.status = 'OUT';
         await record.save();
         res.status(200).json({ message: '打卡下班成功', data: record });
     } catch (error) {
-        res.status(500).json({ error: '系統錯誤: ' + error.message });
+        console.error('下班打卡失敗:', error);
+        res.status(500).json({ error: '下班打卡失敗，請稍後再試' });
     }
 });
 

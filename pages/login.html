@@ -54,6 +54,8 @@
             transition: background-color 0.2s;
         }
         .login-btn:hover { background-color: #60a5fa; }
+        .login-btn:disabled { opacity: 0.7; cursor: wait; }
+        .login-error { min-height: 20px; color: #dc2626; font-size: 13px; text-align: center; }
     </style>
 </head>
 <body>
@@ -71,10 +73,11 @@
         </div>
 
         <!-- 登入表單 -->
-        <form class="form-container" onsubmit="handleLogin(); return false;">
+        <form id="login-form" class="form-container">
             <input type="text" id="username-input" name="username" autocomplete="username" class="form-input" placeholder="請輸入員工編號" required>
             <input type="password" id="password-input" name="current-password" autocomplete="current-password" class="form-input" placeholder="請輸入密碼" required>
-            <button type="submit" class="login-btn">登入</button>
+            <p id="login-error" class="login-error" role="alert" aria-live="polite"></p>
+            <button id="login-button" type="submit" class="login-btn">登入</button>
         </form>
     </div>
 
@@ -85,35 +88,53 @@
             document.getElementById('password-input').value = password;
         }
 
-        function handleLogin() {
-            const username = document.getElementById('username-input').value.trim();
-            const password = document.getElementById('password-input').value.trim();
+        document.getElementById('login-form').addEventListener('submit', async (event) => {
+            event.preventDefault();
 
-            // 主管帳號判斷
-            if (username === '122214241' && password === '000000') {
-                localStorage.setItem('current_role', 'manager');
-                localStorage.setItem('current_user', JSON.stringify({
-                    name: '鄒O伶',
-                    title: '研發部 主管',
-                    role: 'manager'
-                }));
+            const username = document.getElementById('username-input').value.trim();
+            const password = document.getElementById('password-input').value;
+            const loginButton = document.getElementById('login-button');
+            const errorMessage = document.getElementById('login-error');
+
+            loginButton.disabled = true;
+            errorMessage.textContent = '';
+
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || '登入失敗，請確認帳號與密碼');
+                }
+                if (!result.token || !result.user) {
+                    throw new Error('登入回應資料不完整，請稍後再試');
+                }
+
+                const roleTitle = {
+                    admin: '管理員',
+                    manager: '主管',
+                    employee: '一般員工'
+                }[result.user.role] || '一般員工';
+                const currentUser = {
+                    ...result.user,
+                    title: roleTitle
+                };
+
+                localStorage.setItem('token', result.token);
+                localStorage.setItem('current_role', result.user.role);
+                localStorage.setItem('current_user', JSON.stringify(currentUser));
                 window.location.href = 'home.html';
-            } 
-            // 一般員工帳號判斷
-            else if (username === '122214228' && password === '777777') {
-                localStorage.setItem('current_role', 'staff');
-                localStorage.setItem('current_user', JSON.stringify({
-                    name: '劉O瑜',
-                    title: '研發部 專員',
-                    role: 'staff'
-                }));
-                window.location.href = 'home.html';
-            } 
-            // 帳號密碼錯誤提示
-            else {
-                alert('帳號或密碼錯誤！\n\n【主管帳號】\n編號：122214241\n密碼：000000\n\n【一般員工帳號】\n編號：122214228\n密碼：777777');
+            } catch (error) {
+                errorMessage.textContent = error instanceof Error
+                    ? error.message
+                    : '無法連線至伺服器，請稍後再試';
+                loginButton.disabled = false;
             }
-        }
+        });
     </script>
 </body>
 </html>
